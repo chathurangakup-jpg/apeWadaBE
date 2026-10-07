@@ -1,0 +1,32 @@
+const express = require("express");
+const { auth } = require("../middleware/auth");
+const {
+  postJobRequest,
+  getBookingRequests,
+  patchBookingRequest,
+  getAvailability,
+  postAvailability,
+  cancelWorkerBooking,
+} = require("../controllers/worker.controller");
+
+const router = express.Router();
+
+const requireWorker = (req, res, next) => {
+  if (req.user?.role !== "WORKER") {
+    return res.status(403).json({
+      success: false,
+      message: "Worker access is required",
+    });
+  }
+  return next();
+};
+
+router.use(auth, requireWorker);
+router.post("/jobs/:jobId/requests", postJobRequest);
+router.get("/booking-requests", getBookingRequests);
+router.patch("/bookings/:bookingId/respond", patchBookingRequest);
+router.patch("/bookings/:bookingId/cancel", cancelWorkerBooking);
+router.get("/availability", getAvailability);
+router.post("/availability", postAvailability);
+
+module.exports = router;

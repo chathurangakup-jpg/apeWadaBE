@@ -121,6 +121,24 @@ const getCurrentUser = async (userId) => {
         profile.experiences = experiencesResult.rows;
         profile.education = educationResult.rows;
         profile.portfolio = portfolioResult.rows;
+
+        const bookingRequestsResult = await client.query(
+          `
+            SELECT b.id, b.job_id AS "jobId", j.title AS "jobTitle",
+              b.customer_id AS "customerId", cu.name AS "customerName",
+              cu.phone AS "customerPhone", b.scheduled_date AS "scheduledDate",
+              b.start_time AS "startTime", b.end_time AS "endTime",
+              b.status, b.created_at AS "createdAt", b.updated_at AS "updatedAt"
+            FROM bookings b
+            JOIN users cu ON cu.id = b.customer_id
+            LEFT JOIN jobs j ON j.id = b.job_id
+            WHERE b.worker_id = $1
+            ORDER BY CASE WHEN b.status = 'PENDING_CONFIRMATION' THEN 0 ELSE 1 END,
+              b.created_at DESC
+          `,
+          [userId],
+        );
+        profile.bookingRequests = bookingRequestsResult.rows;
       }
     }
 
