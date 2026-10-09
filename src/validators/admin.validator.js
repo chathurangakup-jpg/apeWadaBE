@@ -83,4 +83,40 @@ const validateCategoryPayload = (body = {}, isUpdate = false) => {
   return payload;
 };
 
-module.exports = { validateCategoryId, validateCategoryPayload };
+const validateAdminEntityId = (id, field = "id") => {
+  if (!UUID_PATTERN.test(String(id || ""))) {
+    throw validationError(`${field} must be a valid UUID`);
+  }
+  return id;
+};
+
+const validateApprovalPayload = (body = {}) => {
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    throw validationError("Request body must be a JSON object");
+  }
+  const allowedFields = ["decision", "reason"];
+  const invalidFields = Object.keys(body).filter(
+    (field) => !allowedFields.includes(field),
+  );
+  if (invalidFields.length > 0) {
+    throw validationError(`Unsupported fields: ${invalidFields.join(", ")}`);
+  }
+  const decision = String(body.decision || "").toUpperCase();
+  if (!["APPROVE", "REJECT"].includes(decision)) {
+    throw validationError("decision must be APPROVE or REJECT");
+  }
+  if (
+    body.reason !== undefined &&
+    (typeof body.reason !== "string" || body.reason.trim().length > 1000)
+  ) {
+    throw validationError("reason must be a string up to 1000 characters");
+  }
+  return { decision, reason: body.reason?.trim() || null };
+};
+
+module.exports = {
+  validateCategoryId,
+  validateCategoryPayload,
+  validateAdminEntityId,
+  validateApprovalPayload,
+};

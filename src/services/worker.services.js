@@ -1,4 +1,5 @@
 const pool = require("../config/db");
+const { notifyUser } = require("./notification.services");
 
 const normalizeTime = (value) => {
   if (!value) return null;
@@ -38,6 +39,20 @@ const submitJobRequest = async (workerId, jobId, payload) => {
   );
 
   if (result.rowCount === 1) {
+    const jobDetails = await pool.query(
+      `SELECT customer_id, title FROM jobs WHERE id = $1`,
+      [jobId],
+    );
+    const job = jobDetails.rows[0];
+    if (job) {
+      await notifyUser({
+        userId: job.customer_id,
+        type: "NEW_JOB_REQUEST",
+        title: "New worker quotation",
+        message: `A worker submitted a quotation for ${job.title}.`,
+        data: { jobId, requestId: result.rows[0].id },
+      });
+    }
     return result.rows[0];
   }
 
@@ -302,7 +317,25 @@ const respondToBookingRequest = async (workerId, bookingId, payload) => {
     }
 
     await client.query("COMMIT");
-    return result.rows[0];
+    const updatedBooking = result.rows[0];
+    if (payload.decision === "ACCEPT") {
+      await notifyUser({
+        userId: updatedBooking.customerId,
+        type: "BOOKING_CONFIRMED",
+        title: "Booking confirmed",
+        message: "The worker confirmed your booking date.",
+        data: { bookingId, jobId: updatedBooking.jobId },
+      });
+    } else {
+      await notifyUser({
+        userId: updatedBooking.customerId,
+        type: "BOOKING_REJECTED",
+        title: "Booking request declined",
+        message: "The worker declined your booking request.",
+        data: { bookingId, jobId: updatedBooking.jobId },
+      });
+    }
+    return updatedBooking;
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;

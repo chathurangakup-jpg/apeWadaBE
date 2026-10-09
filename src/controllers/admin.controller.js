@@ -6,7 +6,13 @@ const {
 const {
   validateCategoryId,
   validateCategoryPayload,
+  validateAdminEntityId,
+  validateApprovalPayload,
 } = require("../validators/admin.validator");
+const {
+  approveJobAndNotify,
+  approveWorkerAndNotify,
+} = require("../services/admin.services");
 
 const getCategories = async (req, res) => {
   try {
@@ -98,4 +104,75 @@ const patchCategory = async (req, res) => {
   }
 };
 
-module.exports = { getCategories, postCategory, patchCategory };
+const patchJobApproval = async (req, res) => {
+  try {
+    const jobId = validateAdminEntityId(req.params.jobId, "jobId");
+    const payload = validateApprovalPayload(req.body);
+    const result = await approveJobAndNotify(jobId, req.user.sub, payload);
+    if (!result) {
+      return res.status(404).json({ success: false, message: "Job not found" });
+    }
+    if (result.error === "JOB_NOT_PENDING") {
+      return res.status(409).json({
+        success: false,
+        message: `Job is already ${result.status}`,
+      });
+    }
+    return res.status(200).json({
+      success: true,
+      message: payload.decision === "APPROVE" ? "Job approved" : "Job rejected",
+      data: { job: result },
+    });
+  } catch (error) {
+    return handleApprovalError(error, res, "Failed to update job approval");
+  }
+};
+
+const patchWorkerApproval = async (req, res) => {
+  try {
+    const workerId = validateAdminEntityId(req.params.workerId, "workerId");
+    const payload = validateApprovalPayload(req.body);
+    const result = await approveWorkerAndNotify(
+      workerId,
+      req.user.sub,
+      payload,
+    );
+    if (!result) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Worker not found" });
+    }
+    if (result.error === "WORKER_NOT_PENDING") {
+      return res.status(409).json({
+        success: false,
+        message: `Worker profile is already ${result.approvalStatus}`,
+      });
+    }
+    return res.status(200).json({
+      success: true,
+      message:
+        payload.decision === "APPROVE"
+          ? "Worker profile approved"
+          : "Worker profile rejected",
+      data: { worker: result },
+    });
+  } catch (error) {
+    return handleApprovalError(error, res, "Failed to update worker approval");
+  }
+};
+
+const handleApprovalError = (error, res, fallbackMessage) => {
+  if (error.name === "ValidationError") {
+    return res.status(400).json({ success: false, message: error.message });
+  }
+  console.error(`${fallbackMessage}:`, error);
+  return res.status(500).json({ success: false, message: fallbackMessage });
+};
+
+module.exports = {
+  getCategories,
+  postCategory,
+  patchCategory,
+  patchJobApproval,
+  patchWorkerApproval,
+};

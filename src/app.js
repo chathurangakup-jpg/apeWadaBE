@@ -12,6 +12,9 @@ const userRoutes = require("./routes/users.routes");
 const adminRoutes = require("./routes/admin.routes");
 const customerRoutes = require("./routes/customer.routes");
 const workerRoutes = require("./routes/worker.routes");
+const conversationRoutes = require("./routes/conversation.routes");
+const notificationRoutes = require("./routes/notification.routes");
+const internalRoutes = require("./routes/internal.routes");
 
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
