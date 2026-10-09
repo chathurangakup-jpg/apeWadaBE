@@ -26,7 +26,10 @@ const validateCreateConversationPayload = (body = {}) => {
     throw validationError(`Unsupported fields: ${invalidFields.join(", ")}`);
   }
   return {
-    jobId: validateUuid(body.jobId, "jobId"),
+    jobId:
+      body.jobId === undefined || body.jobId === null || body.jobId === ""
+        ? null
+        : validateUuid(body.jobId, "jobId"),
     participantId: validateUuid(body.participantId, "participantId"),
   };
 };

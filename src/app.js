@@ -18,5 +18,9 @@ app.use("/api/user", userRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/customer", customerRoutes);
 app.use("/api/worker", workerRoutes);
+app.use("/api/conversations", conversationRoutes);
+app.use("/api/notifications", notificationRoutes);
+
+app.use("/internal/socket", internalRoutes);
 
 module.exports = app;

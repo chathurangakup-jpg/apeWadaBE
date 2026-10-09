@@ -1,4 +1,5 @@
 const pool = require("../config/db");
+const { notifyUser } = require("./notification.services");
 
 const getJob = async (client, jobId) => {
   const jobResult = await client.query(
@@ -347,7 +348,15 @@ const createBookingRequest = async (customerId, payload) => {
     );
 
     await client.query("COMMIT");
-    return result.rows[0];
+    const booking = result.rows[0];
+    await notifyUser({
+      userId: payload.workerId,
+      type: "WORKER_SELECTED",
+      title: "New booking request",
+      message: "A customer sent you a booking request.",
+      data: { bookingId: booking.id, jobId: booking.jobId },
+    });
+    return booking;
   } catch (error) {
     await client.query("ROLLBACK");
     if (error.code === "23505") {
