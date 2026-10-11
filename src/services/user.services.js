@@ -1,6 +1,71 @@
 const pool = require("../config/db");
 const { hashPassword } = require("../middleware/password");
 
+const getPublicData = async () => {
+  const [categoriesResult, workersResult, jobsResult] = await Promise.all([
+    pool.query(
+      `
+        SELECT id, name_en AS "nameEn", name_si AS "nameSi", slug, icon
+        FROM categories
+        WHERE is_active = TRUE
+        ORDER BY name_en ASC
+      `,
+    ),
+    pool.query(
+      `
+        SELECT u.id, u.name, u.avatar_path AS "avatarPath",
+          wp.bio, wp.experience_years AS "experienceYears",
+          wp.district, wp.city, wp.average_rating AS "averageRating",
+          wp.review_count AS "reviewCount",
+          COALESCE(
+            json_agg(
+              json_build_object(
+                'id', c.id,
+                'nameEn', c.name_en,
+                'nameSi', c.name_si,
+                'slug', c.slug,
+                'icon', c.icon
+              ) ORDER BY c.name_en
+            ) FILTER (WHERE c.id IS NOT NULL),
+            '[]'::json
+          ) AS categories
+        FROM worker_profiles wp
+        JOIN users u ON u.id = wp.user_id
+        LEFT JOIN worker_categories wc ON wc.worker_id = wp.user_id
+        LEFT JOIN categories c ON c.id = wc.category_id AND c.is_active = TRUE
+        WHERE u.is_active = TRUE
+          AND wp.approval_status = 'APPROVED'
+          AND wp.average_rating > 0
+          AND wp.review_count > 0
+        GROUP BY u.id, wp.user_id
+        ORDER BY wp.average_rating DESC, wp.review_count DESC, u.created_at DESC
+        LIMIT 5
+      `,
+    ),
+    pool.query(
+      `
+        SELECT j.id, j.title, j.description,
+          j.category_id AS "categoryId", c.name_en AS "categoryNameEn",
+          c.name_si AS "categoryNameSi", c.slug AS "categorySlug",
+          j.district, j.city, j.preferred_date AS "preferredDate",
+          j.created_at AS "createdAt"
+        FROM jobs j
+        JOIN categories c ON c.id = j.category_id AND c.is_active = TRUE
+        JOIN users customer ON customer.id = j.customer_id AND customer.is_active = TRUE
+        WHERE j.status = 'OPEN'
+        ORDER BY j.created_at DESC
+        LIMIT 10
+      `,
+    ),
+  ]);
+
+  return {
+    categories: categoriesResult.rows,
+    topRatedWorkers: workersResult.rows,
+    recentJobs: jobsResult.rows,
+  };
+};
+
 /**
  * Get current user + role-specific profile
  */
@@ -593,6 +658,7 @@ const deactivateUser = async (userId) => {
 };
 
 module.exports = {
+  getPublicData,
   getCurrentUser,
   updateCurrentUser,
   updateCustomerProfile,

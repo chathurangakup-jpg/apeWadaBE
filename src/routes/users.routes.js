@@ -1,6 +1,7 @@
 const express = require("express");
 
 const {
+  getData,
   getMe,
   updateMe,
   updateMyCustomerProfile,
@@ -11,6 +12,9 @@ const {
 const { auth } = require("../middleware/auth");
 
 const router = express.Router();
+
+// Public dashboard data must be registered before authentication middleware.
+router.get("/getData", getData);
 
 /**
  * All user routes require authentication

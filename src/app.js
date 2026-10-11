@@ -1,12 +1,27 @@
 const express = require("express");
 const cors = require("cors");
+const cookieParser = require("cookie-parser");
 
 require("dotenv").config();
+
 const app = express();
 
-app.use(cors());
-app.use(express.json());
+// CORS configuration
+const allowedOrigins = ["http://192.168.1.174:3000", "http://localhost:3000"];
 
+app.use(
+  cors({
+    origin: allowedOrigins,
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  }),
+);
+
+app.use(express.json());
+app.use(cookieParser());
+
+// Routes
 const authRoutes = require("./routes/auth.routes");
 const userRoutes = require("./routes/users.routes");
 const adminRoutes = require("./routes/admin.routes");

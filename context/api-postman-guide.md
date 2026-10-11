@@ -43,6 +43,7 @@ Public registration does not allow creating an ADMIN. Use an admin account provi
 
 | Method | Path                            | Access        | Purpose                                                                 |
 | ------ | ------------------------------- | ------------- | ----------------------------------------------------------------------- |
+| GET    | `/api/user/getData`             | Public        | Get categories, top five rated workers, and ten recent open jobs        |
 | GET    | `/api/user/me`                  | Authenticated | Get account and role-specific profile                                   |
 | PATCH  | `/api/user/me`                  | Authenticated | Update name, phone, or preferred language                               |
 | PATCH  | `/api/user/me/customer-profile` | CUSTOMER      | Update customer profile                                                 |
@@ -52,6 +53,26 @@ Public registration does not allow creating an ADMIN. Use an admin account provi
 
 The current user prefix is `/api/user` (singular). Profile image upload is not currently mounted as an API.
 Use a new email address and phone number each time you rerun registration because both are unique in the database. Replace the example values if they already exist.
+
+### Public Dashboard Data
+
+**GET** `{{baseUrl}}/api/user/getData`
+
+No authorization or body is required. The response shape is:
+
+```json
+{
+  "success": true,
+  "message": "Public data retrieved successfully",
+  "data": {
+    "categories": [],
+    "topRatedWorkers": [],
+    "recentJobs": []
+  }
+}
+```
+
+Only active categories, active approved workers with ratings, and recent OPEN jobs are included. The endpoint accepts no query parameters.
 
 Examples for the current user's update endpoints:
 

@@ -23,6 +23,12 @@ const validateUuid = (value) => {
   return value;
 };
 
+const validateGetDataQuery = (query = {}) => {
+  if (Object.keys(query).length > 0) {
+    throw new Error("getData does not accept query parameters");
+  }
+};
+
 /**
  * Validate PATCH /api/users/me
  *
@@ -426,6 +432,7 @@ const normalizePreferredLanguage = (value) => {
 };
 
 module.exports = {
+  validateGetDataQuery,
   validateUuid,
   validateUpdateUserPayload,
   validateCustomerProfilePayload,

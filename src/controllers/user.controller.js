@@ -1,4 +1,5 @@
 const {
+  getPublicData,
   getCurrentUser,
   updateCurrentUser,
   updateCustomerProfile,
@@ -9,6 +10,7 @@ const {
 } = require("../services/user.services");
 
 const {
+  validateGetDataQuery,
   validateUpdateUserPayload,
   validateCustomerProfilePayload,
   validateWorkerProfilePayload,
@@ -16,6 +18,38 @@ const {
 } = require("../validators/user.validator");
 
 const { comparePassword } = require("../middleware/password");
+
+/**
+ * Public dashboard data
+ *
+ * GET /api/user/getData
+ */
+const getData = async (req, res) => {
+  try {
+    validateGetDataQuery(req.query);
+    const data = await getPublicData();
+    return res.status(200).json({
+      success: true,
+      message: "Public data retrieved successfully",
+      data,
+    });
+  } catch (error) {
+    if (
+      error.name === "ValidationError" ||
+      error.message === "getData does not accept query parameters"
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+    console.error("Get public data error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to load public data",
+    });
+  }
+};
 
 /**
  * Get authenticated user
@@ -362,6 +396,7 @@ const deactivateMyAccount = async (req, res) => {
 };
 
 module.exports = {
+  getData,
   getMe,
   updateMe,
   updateMyCustomerProfile,
