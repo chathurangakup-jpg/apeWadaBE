@@ -5,11 +5,13 @@ const {
   listJobRequests,
   createBookingRequest,
   cancelCustomerBooking,
+  createWorkerReview,
 } = require("../services/customer.services");
 const {
   validateJobId,
   validateJobPayload,
   validateBookingPayload,
+  validateReviewPayload,
 } = require("../validators/customer.validator");
 const { validateBookingId } = require("../validators/worker.validator");
 const {
@@ -144,6 +146,39 @@ const cancelCustomerBookingRequest = async (req, res) => {
   }
 };
 
+const postWorkerReview = async (req, res) => {
+  try {
+    const bookingId = validateBookingId(req.params.bookingId);
+    const payload = validateReviewPayload(req.body);
+    const review = await createWorkerReview(req.user.sub, bookingId, payload);
+    return res.status(201).json({
+      success: true,
+      message: "Worker review submitted successfully",
+      data: { review },
+    });
+  } catch (error) {
+    if (error.name === "ValidationError") {
+      return res.status(400).json({ success: false, message: error.message });
+    }
+    const statuses = {
+      BOOKING_NOT_FOUND: 404,
+      BOOKING_NOT_COMPLETED: 409,
+      REVIEW_ALREADY_EXISTS: 409,
+    };
+    if (statuses[error.code]) {
+      return res.status(statuses[error.code]).json({
+        success: false,
+        message: error.message,
+      });
+    }
+    console.error("Create worker review error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to submit worker review",
+    });
+  }
+};
+
 const handleJobError = (error, res, fallbackMessage) => {
   if (error.name === "ValidationError") {
     return res.status(400).json({ success: false, message: error.message });
@@ -172,4 +207,5 @@ module.exports = {
   getJobRequests,
   postBookingRequest,
   cancelCustomerBookingRequest,
+  postWorkerReview,
 };

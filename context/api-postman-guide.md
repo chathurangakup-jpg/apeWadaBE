@@ -132,6 +132,7 @@ All routes require an authenticated CUSTOMER token.
 | GET    | `/api/customer/jobs/:id/requests`          | List quotations for an owned job                            |
 | POST   | `/api/customer/bookings`                   | Request a booking with a worker, optionally linked to a job |
 | PATCH  | `/api/customer/bookings/:bookingId/cancel` | Cancel a confirmed/in-progress booking with a reason        |
+| POST   | `/api/customer/bookings/:bookingId/review` | Review the worker after a linked job is completed           |
 
 ### Worker
 
@@ -142,6 +143,7 @@ All routes require an authenticated WORKER token.
 | POST   | `/api/worker/jobs/:jobId/requests`        | Submit a quotation for an OPEN job                   |
 | GET    | `/api/worker/booking-requests`            | List booking requests sent to the worker             |
 | PATCH  | `/api/worker/bookings/:bookingId/respond` | Accept or reject a pending booking request           |
+| PATCH  | `/api/worker/bookings/:bookingId/status`  | Move a confirmed booking to IN_PROGRESS or COMPLETED |
 | PATCH  | `/api/worker/bookings/:bookingId/cancel`  | Cancel a confirmed/in-progress booking with a reason |
 | GET    | `/api/worker/availability`                | List worker availability entries                     |
 | POST   | `/api/worker/availability`                | Add one or more availability entries                 |
@@ -456,7 +458,42 @@ To reject a still-pending booking request, send only:
 }
 ```
 
-### 3.12 Cancel a Confirmed Booking
+### 3.12 Complete Work and Review the Worker
+
+After accepting a booking, the worker marks the work in progress and then completed. Use `workerToken` for both requests:
+
+**PATCH** `{{baseUrl}}/api/worker/bookings/{{bookingId}}/status`
+
+```json
+{
+  "status": "IN_PROGRESS"
+}
+```
+
+When the work is finished, send the same request with:
+
+```json
+{
+  "status": "COMPLETED"
+}
+```
+
+For a job-linked booking, the associated job moves from `SCHEDULED` to `IN_PROGRESS` to `COMPLETED` with the booking. These transitions must happen in order.
+
+After completion, the customer can submit one review for the worker using `customerToken`:
+
+**POST** `{{baseUrl}}/api/customer/bookings/{{bookingId}}/review`
+
+```json
+{
+  "rating": 5,
+  "comment": "Arrived on time and fixed the leak."
+}
+```
+
+`rating` must be an integer from 1 to 5. `comment` is optional and can be up to 3000 characters. The booking determines the customer, worker, and job; those IDs are not accepted in the request body. A review requires a completed job-linked booking, and each job can be reviewed once. The response includes the saved review plus the worker's refreshed `averageRating` and `reviewCount`.
+
+### 3.13 Cancel a Confirmed Booking
 
 Cancellation is separate from rejecting a pending request. It requires a reason and can be called by the booking's customer or worker.
 
@@ -476,7 +513,7 @@ Body for either:
 }
 ```
 
-### 3.13 Set Worker Availability
+### 3.14 Set Worker Availability
 
 Use `workerToken`.
 
@@ -501,7 +538,7 @@ Use `workerToken`.
 
 List availability with **GET** `{{baseUrl}}/api/worker/availability`.
 
-### 3.14 Start a Text Conversation
+### 3.15 Start a Text Conversation
 
 Use either the customer or worker token. The other account must be the participant, and the worker must be approved. `jobId` is optional; if supplied, it must belong to the customer and be in an eligible state.
 
@@ -527,7 +564,7 @@ Send a text message:
 
 Read messages with **GET** `{{baseUrl}}/api/conversations/{{conversationId}}/messages?limit=50`; mark incoming messages read with **PATCH** `{{baseUrl}}/api/conversations/{{conversationId}}/read`.
 
-### 3.15 Notifications and Push Tokens
+### 3.16 Notifications and Push Tokens
 
 List the current user's notifications:
 
@@ -562,7 +599,7 @@ Deactivate it with **DELETE** `{{baseUrl}}/api/notifications/push-tokens` and bo
 
 ## 4. Migrations and Scope Notes
 
-Apply database migrations in numeric order before testing the related APIs. The feature migrations include categories, worker profile records, jobs, requests/bookings, availability/cancellations, conversations, direct conversations, and notifications/push tokens.
+Apply database migrations in numeric order before testing the related APIs. The feature migrations include categories, worker profile records, jobs, requests/bookings, availability/cancellations, conversations, direct conversations, notifications/push tokens, and reviews (`011_create_reviews.sql`).
 
 Admin accounts must already exist; they cannot be registered through the public auth API. Admin approval routes require `adminToken`.
 

@@ -5,12 +5,14 @@ const {
   listWorkerAvailability,
   saveWorkerAvailability,
   cancelBooking,
+  updateBookingWorkStatus,
 } = require("../services/worker.services");
 const {
   validateJobId,
   validateBookingId,
   validateJobRequestPayload,
   validateBookingDecisionPayload,
+  validateBookingWorkStatusPayload,
   validateAvailabilityPayload,
 } = require("../validators/worker.validator");
 const {
@@ -133,6 +135,37 @@ const cancelWorkerBooking = async (req, res) => {
   }
 };
 
+const patchBookingWorkStatus = async (req, res) => {
+  try {
+    const bookingId = validateBookingId(req.params.bookingId);
+    const { status } = validateBookingWorkStatusPayload(req.body);
+    const booking = await updateBookingWorkStatus(
+      req.user.sub,
+      bookingId,
+      status,
+    );
+    if (!booking) {
+      return res.status(404).json({
+        success: false,
+        message: "Booking not found",
+      });
+    }
+    return res.status(200).json({
+      success: true,
+      message: `Booking marked ${status.toLowerCase()}`,
+      data: { booking },
+    });
+  } catch (error) {
+    if (error.name === "ValidationError") {
+      return res.status(400).json({ success: false, message: error.message });
+    }
+    if (error.code === "INVALID_BOOKING_STATUS_TRANSITION") {
+      return res.status(409).json({ success: false, message: error.message });
+    }
+    return handleWorkerError(error, res, "Failed to update booking status");
+  }
+};
+
 const handleWorkerError = (error, res, fallbackMessage) => {
   if (error.name === "ValidationError") {
     return res.status(400).json({ success: false, message: error.message });
@@ -163,4 +196,5 @@ module.exports = {
   getAvailability,
   postAvailability,
   cancelWorkerBooking,
+  patchBookingWorkStatus,
 };

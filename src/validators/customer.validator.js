@@ -264,4 +264,37 @@ const validateBookingPayload = (body = {}) => {
   return payload;
 };
 
-module.exports = { validateJobId, validateJobPayload, validateBookingPayload };
+const validateReviewPayload = (body = {}) => {
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    throw validationError("Request body must be a JSON object");
+  }
+  const allowedFields = ["rating", "comment"];
+  const invalidFields = Object.keys(body).filter(
+    (field) => !allowedFields.includes(field),
+  );
+  if (invalidFields.length > 0) {
+    throw validationError(`Unsupported fields: ${invalidFields.join(", ")}`);
+  }
+  if (!Number.isInteger(body.rating) || body.rating < 1 || body.rating > 5) {
+    throw validationError("rating must be an integer from 1 to 5");
+  }
+  if (
+    body.comment !== undefined &&
+    body.comment !== null &&
+    (typeof body.comment !== "string" || body.comment.length > 3000)
+  ) {
+    throw validationError("comment must be a string up to 3000 characters");
+  }
+  return {
+    rating: body.rating,
+    comment:
+      typeof body.comment === "string" ? body.comment.trim() || null : null,
+  };
+};
+
+module.exports = {
+  validateJobId,
+  validateJobPayload,
+  validateBookingPayload,
+  validateReviewPayload,
+};

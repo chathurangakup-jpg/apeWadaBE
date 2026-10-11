@@ -127,6 +127,19 @@ const validateBookingDecisionPayload = (body = {}) => {
   return payload;
 };
 
+const validateBookingWorkStatusPayload = (body = {}) => {
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    throw validationError("Request body must be a JSON object");
+  }
+  if (
+    Object.keys(body).length !== 1 ||
+    !["IN_PROGRESS", "COMPLETED"].includes(body.status)
+  ) {
+    throw validationError("status must be IN_PROGRESS or COMPLETED");
+  }
+  return { status: body.status };
+};
+
 const validateAvailabilityPayload = (body = {}) => {
   if (!body || typeof body !== "object" || Array.isArray(body)) {
     throw validationError("Request body must be a JSON object");
@@ -208,5 +221,6 @@ module.exports = {
   validateBookingId,
   validateJobRequestPayload,
   validateBookingDecisionPayload,
+  validateBookingWorkStatusPayload,
   validateAvailabilityPayload,
 };

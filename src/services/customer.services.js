@@ -418,6 +418,88 @@ const cancelCustomerBooking = async (customerId, bookingId, reason) => {
   }
 };
 
+const createWorkerReview = async (customerId, bookingId, payload) => {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const bookingResult = await client.query(
+      `SELECT id, job_id, worker_id, status FROM bookings WHERE id = $1 AND customer_id = $2 FOR UPDATE`,
+      [bookingId, customerId],
+    );
+    const booking = bookingResult.rows[0];
+    if (!booking) {
+      const error = new Error("Completed booking not found");
+      error.code = "BOOKING_NOT_FOUND";
+      throw error;
+    }
+    if (booking.status !== "COMPLETED" || !booking.job_id) {
+      const error = new Error(
+        "A completed job booking is required to review a worker",
+      );
+      error.code = "BOOKING_NOT_COMPLETED";
+      throw error;
+    }
+
+    const workerResult = await client.query(
+      `SELECT user_id FROM worker_profiles WHERE user_id = $1 FOR UPDATE`,
+      [booking.worker_id],
+    );
+    if (workerResult.rowCount === 0) {
+      const error = new Error("Worker profile not found");
+      error.code = "BOOKING_NOT_FOUND";
+      throw error;
+    }
+
+    const reviewResult = await client.query(
+      `
+        INSERT INTO reviews (job_id, customer_id, worker_id, rating, comment)
+        VALUES ($1, $2, $3, $4, $5)
+        RETURNING id, job_id AS "jobId", customer_id AS "customerId",
+          worker_id AS "workerId", rating, comment,
+          created_at AS "createdAt", updated_at AS "updatedAt"
+      `,
+      [
+        booking.job_id,
+        customerId,
+        booking.worker_id,
+        payload.rating,
+        payload.comment,
+      ],
+    );
+
+    const profileResult = await client.query(
+      `
+        UPDATE worker_profiles wp
+        SET review_count = stats.review_count,
+          average_rating = stats.average_rating,
+          updated_at = NOW()
+        FROM (
+          SELECT COUNT(*)::INTEGER AS review_count,
+            ROUND(AVG(rating)::NUMERIC, 2) AS average_rating
+          FROM reviews
+          WHERE worker_id = $1
+        ) stats
+        WHERE wp.user_id = $1
+        RETURNING wp.average_rating AS "averageRating",
+          wp.review_count AS "reviewCount"
+      `,
+      [booking.worker_id],
+    );
+
+    await client.query("COMMIT");
+    return { ...reviewResult.rows[0], ...profileResult.rows[0] };
+  } catch (error) {
+    await client.query("ROLLBACK");
+    if (error.code === "23505") {
+      error.code = "REVIEW_ALREADY_EXISTS";
+      error.message = "This job has already been reviewed";
+    }
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
 module.exports = {
   createJob,
   updateJob,
@@ -425,4 +507,5 @@ module.exports = {
   listJobRequests,
   createBookingRequest,
   cancelCustomerBooking,
+  createWorkerReview,
 };

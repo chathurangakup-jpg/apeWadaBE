@@ -7,6 +7,7 @@ const {
   getAvailability,
   postAvailability,
   cancelWorkerBooking,
+  patchBookingWorkStatus,
 } = require("../controllers/worker.controller");
 
 const router = express.Router();
@@ -25,6 +26,7 @@ router.use(auth, requireWorker);
 router.post("/jobs/:jobId/requests", postJobRequest);
 router.get("/booking-requests", getBookingRequests);
 router.patch("/bookings/:bookingId/respond", patchBookingRequest);
+router.patch("/bookings/:bookingId/status", patchBookingWorkStatus);
 router.patch("/bookings/:bookingId/cancel", cancelWorkerBooking);
 router.get("/availability", getAvailability);
 router.post("/availability", postAvailability);

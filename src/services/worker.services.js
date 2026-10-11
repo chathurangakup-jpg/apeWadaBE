@@ -394,6 +394,70 @@ const cancelBooking = async (workerId, bookingId, reason) => {
   }
 };
 
+const updateBookingWorkStatus = async (workerId, bookingId, status) => {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const bookingResult = await client.query(
+      `SELECT id, job_id, status FROM bookings WHERE id = $1 AND worker_id = $2 FOR UPDATE`,
+      [bookingId, workerId],
+    );
+    const booking = bookingResult.rows[0];
+    if (!booking) {
+      await client.query("ROLLBACK");
+      return null;
+    }
+
+    const expectedStatus =
+      status === "IN_PROGRESS" ? "CONFIRMED" : "IN_PROGRESS";
+    if (booking.status !== expectedStatus) {
+      const error = new Error(
+        `Booking must be ${expectedStatus} before it can be marked ${status}`,
+      );
+      error.code = "INVALID_BOOKING_STATUS_TRANSITION";
+      throw error;
+    }
+
+    const result = await client.query(
+      `
+        UPDATE bookings
+        SET status = $1, updated_at = NOW()
+        WHERE id = $2
+        RETURNING id, job_id AS "jobId", customer_id AS "customerId",
+          worker_id AS "workerId", scheduled_date AS "scheduledDate",
+          start_time AS "startTime", end_time AS "endTime", status,
+          confirmed_at AS "confirmedAt", created_at AS "createdAt",
+          updated_at AS "updatedAt"
+      `,
+      [status, bookingId],
+    );
+
+    if (booking.job_id) {
+      const expectedJobStatus =
+        status === "IN_PROGRESS" ? "SCHEDULED" : "IN_PROGRESS";
+      const jobResult = await client.query(
+        `UPDATE jobs SET status = $1, updated_at = NOW() WHERE id = $2 AND status = $3 RETURNING id`,
+        [status, booking.job_id, expectedJobStatus],
+      );
+      if (jobResult.rowCount === 0) {
+        const error = new Error(
+          "Job status does not allow this booking transition",
+        );
+        error.code = "INVALID_BOOKING_STATUS_TRANSITION";
+        throw error;
+      }
+    }
+
+    await client.query("COMMIT");
+    return result.rows[0];
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
 module.exports = {
   submitJobRequest,
   getBookingRequestsForWorker,
@@ -401,4 +465,5 @@ module.exports = {
   listWorkerAvailability,
   saveWorkerAvailability,
   cancelBooking,
+  updateBookingWorkStatus,
 };

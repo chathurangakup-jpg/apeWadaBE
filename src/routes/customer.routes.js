@@ -7,6 +7,7 @@ const {
   getJobRequests,
   postBookingRequest,
   cancelCustomerBookingRequest,
+  postWorkerReview,
 } = require("../controllers/customer.controller");
 
 const router = express.Router();
@@ -28,5 +29,6 @@ router.delete("/jobs/:id", deleteJob);
 router.get("/jobs/:id/requests", getJobRequests);
 router.post("/bookings", postBookingRequest);
 router.patch("/bookings/:bookingId/cancel", cancelCustomerBookingRequest);
+router.post("/bookings/:bookingId/review", postWorkerReview);
 
 module.exports = router;
