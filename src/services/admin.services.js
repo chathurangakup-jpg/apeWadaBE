@@ -9,6 +9,68 @@ const CATEGORY_COLUMNS = {
   isActive: "is_active",
 };
 
+const ADMIN_USER_SELECT = `
+  SELECT u.id, u.role, u.name, u.email, u.phone,
+    u.preferred_language AS "preferredLanguage", u.is_active AS "isActive",
+    u.last_login_at AS "lastLoginAt", u.created_at AS "createdAt",
+    u.updated_at AS "updatedAt",
+    CASE
+      WHEN u.role = 'CUSTOMER' AND cp.user_id IS NOT NULL THEN
+        jsonb_build_object(
+          'address', cp.address, 'district', cp.district,
+          'city', cp.city, 'venue', cp.venue,
+          'createdAt', cp.created_at, 'updatedAt', cp.updated_at
+        )
+      WHEN u.role = 'WORKER' AND wp.user_id IS NOT NULL THEN
+        jsonb_build_object(
+          'bio', wp.bio, 'experienceYears', wp.experience_years,
+          'educationSummary', wp.education_summary, 'district', wp.district,
+          'city', wp.city, 'venue', wp.venue,
+          'approvalStatus', wp.approval_status,
+          'availabilityStatus', wp.availability_status,
+          'averageRating', wp.average_rating, 'reviewCount', wp.review_count,
+          'createdAt', wp.created_at, 'updatedAt', wp.updated_at,
+          'categories', COALESCE((
+            SELECT jsonb_agg(jsonb_build_object(
+              'id', c.id, 'nameEn', c.name_en, 'nameSi', c.name_si,
+              'slug', c.slug, 'icon', c.icon
+            ) ORDER BY c.name_en)
+            FROM worker_categories wc
+            JOIN categories c ON c.id = wc.category_id
+            WHERE wc.worker_id = u.id
+          ), '[]'::jsonb),
+          'experiences', COALESCE((
+            SELECT jsonb_agg(jsonb_build_object(
+              'id', we.id, 'companyName', we.company_name,
+              'jobTitle', we.job_title, 'description', we.description,
+              'startDate', we.start_date, 'endDate', we.end_date,
+              'isCurrent', we.is_current
+            ) ORDER BY we.created_at)
+            FROM worker_experience we WHERE we.worker_id = u.id
+          ), '[]'::jsonb),
+          'education', COALESCE((
+            SELECT jsonb_agg(jsonb_build_object(
+              'id', we.id, 'institution', we.institution,
+              'qualification', we.qualification, 'description', we.description,
+              'startDate', we.start_date, 'endDate', we.end_date
+            ) ORDER BY we.created_at)
+            FROM worker_education we WHERE we.worker_id = u.id
+          ), '[]'::jsonb),
+          'portfolio', COALESCE((
+            SELECT jsonb_agg(jsonb_build_object(
+              'id', p.id, 'title', p.title, 'description', p.description,
+              'completedAt', p.completed_at
+            ) ORDER BY p.created_at)
+            FROM worker_portfolio p WHERE p.worker_id = u.id
+          ), '[]'::jsonb)
+        )
+      ELSE NULL
+    END AS profile
+  FROM users u
+  LEFT JOIN customer_profiles cp ON cp.user_id = u.id
+  LEFT JOIN worker_profiles wp ON wp.user_id = u.id
+`;
+
 const serializeCategory = (row) => ({
   id: row.id,
   nameEn: row.name_en,
@@ -64,6 +126,118 @@ const updateCategory = async (id, payload) => {
   );
 
   return result.rows[0] ? serializeCategory(result.rows[0]) : null;
+};
+
+const listAdminUsers = async (role) => {
+  const result = await pool.query(
+    `${ADMIN_USER_SELECT}
+     WHERE u.role IN ('CUSTOMER', 'WORKER')
+       AND ($1::VARCHAR IS NULL OR u.role = $1)
+     ORDER BY u.created_at DESC`,
+    [role],
+  );
+  return result.rows;
+};
+
+const updateAdminUser = async (userId, payload) => {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const userResult = await client.query(
+      `SELECT id, role FROM users WHERE id = $1 AND role IN ('CUSTOMER', 'WORKER') FOR UPDATE`,
+      [userId],
+    );
+    const user = userResult.rows[0];
+    if (!user) {
+      await client.query("ROLLBACK");
+      return null;
+    }
+
+    const workerOnlyFields = ["bio", "experienceYears", "educationSummary"];
+    const customerOnlyFields = ["address"];
+    const disallowedFields =
+      user.role === "WORKER" ? customerOnlyFields : workerOnlyFields;
+    if (
+      Object.keys(payload).some((field) => disallowedFields.includes(field))
+    ) {
+      const error = new Error(
+        `Profile fields do not match the ${user.role} account`,
+      );
+      error.code = "PROFILE_FIELDS_NOT_ALLOWED";
+      throw error;
+    }
+
+    const userColumns = {
+      name: "name",
+      email: "email",
+      phone: "phone",
+      preferredLanguage: "preferred_language",
+      isActive: "is_active",
+    };
+    const accountFields = Object.entries(userColumns).filter(
+      ([field]) => payload[field] !== undefined,
+    );
+    if (accountFields.length > 0) {
+      const values = accountFields.map(([field]) => payload[field]);
+      values.push(userId);
+      const assignments = accountFields.map(
+        ([, column], index) => `${column} = $${index + 1}`,
+      );
+      await client.query(
+        `UPDATE users SET ${assignments.join(", ")}, updated_at = NOW() WHERE id = $${values.length}`,
+        values,
+      );
+    }
+
+    const profileColumns = {
+      district: "district",
+      city: "city",
+      venue: "venue",
+      ...(user.role === "CUSTOMER"
+        ? { address: "address" }
+        : {
+            bio: "bio",
+            experienceYears: "experience_years",
+            educationSummary: "education_summary",
+          }),
+    };
+    const profileFields = Object.entries(profileColumns).filter(
+      ([field]) => payload[field] !== undefined,
+    );
+    if (profileFields.length > 0) {
+      const columns = profileFields.map(([, column]) => column);
+      const values = [
+        userId,
+        ...profileFields.map(([field]) => payload[field]),
+      ];
+      const placeholders = profileFields.map((_, index) => `$${index + 2}`);
+      const assignments = profileFields.map(
+        ([, column]) => `${column} = EXCLUDED.${column}`,
+      );
+      await client.query(
+        `
+          INSERT INTO ${user.role === "CUSTOMER" ? "customer_profiles" : "worker_profiles"}
+            (user_id, ${columns.join(", ")})
+          VALUES ($1, ${placeholders.join(", ")})
+          ON CONFLICT (user_id) DO UPDATE
+          SET ${assignments.join(", ")}, updated_at = NOW()
+        `,
+        values,
+      );
+    }
+
+    const updatedResult = await client.query(
+      `${ADMIN_USER_SELECT} WHERE u.id = $1`,
+      [userId],
+    );
+    await client.query("COMMIT");
+    return updatedResult.rows[0];
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
 };
 
 const approveCustomerJob = async (jobId, adminId, { decision, reason }) => {
@@ -170,6 +344,8 @@ module.exports = {
   listCategories,
   createCategory,
   updateCategory,
+  listAdminUsers,
+  updateAdminUser,
   approveJobAndNotify,
   approveWorkerAndNotify,
 };

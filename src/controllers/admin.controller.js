@@ -2,12 +2,16 @@ const {
   listCategories,
   createCategory,
   updateCategory,
+  listAdminUsers,
+  updateAdminUser,
 } = require("../services/admin.services");
 const {
   validateCategoryId,
   validateCategoryPayload,
   validateAdminEntityId,
   validateApprovalPayload,
+  validateAdminUsersQuery,
+  validateAdminUserPayload,
 } = require("../validators/admin.validator");
 const {
   approveJobAndNotify,
@@ -161,6 +165,59 @@ const patchWorkerApproval = async (req, res) => {
   }
 };
 
+const getUsers = async (req, res) => {
+  try {
+    const role = validateAdminUsersQuery(req.query);
+    const users = await listAdminUsers(role);
+    return res.status(200).json({ success: true, data: { users } });
+  } catch (error) {
+    if (error.name === "ValidationError") {
+      return res.status(400).json({ success: false, message: error.message });
+    }
+    console.error("List admin users error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to load users",
+    });
+  }
+};
+
+const patchUser = async (req, res) => {
+  try {
+    const userId = validateAdminEntityId(req.params.userId, "userId");
+    const payload = validateAdminUserPayload(req.body);
+    const user = await updateAdminUser(userId, payload);
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+    return res.status(200).json({
+      success: true,
+      message: "User details updated successfully",
+      data: { user },
+    });
+  } catch (error) {
+    if (error.name === "ValidationError") {
+      return res.status(400).json({ success: false, message: error.message });
+    }
+    if (error.code === "PROFILE_FIELDS_NOT_ALLOWED") {
+      return res.status(400).json({ success: false, message: error.message });
+    }
+    if (error.code === "23505") {
+      return res.status(409).json({
+        success: false,
+        message: "Email or phone number is already in use",
+      });
+    }
+    console.error("Update admin user error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to update user details",
+    });
+  }
+};
+
 const handleApprovalError = (error, res, fallbackMessage) => {
   if (error.name === "ValidationError") {
     return res.status(400).json({ success: false, message: error.message });
@@ -175,4 +232,6 @@ module.exports = {
   patchCategory,
   patchJobApproval,
   patchWorkerApproval,
+  getUsers,
+  patchUser,
 };

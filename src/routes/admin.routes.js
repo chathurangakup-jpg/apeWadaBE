@@ -6,6 +6,8 @@ const {
   patchCategory,
   patchJobApproval,
   patchWorkerApproval,
+  getUsers,
+  patchUser,
 } = require("../controllers/admin.controller");
 
 const router = express.Router();
@@ -27,5 +29,7 @@ router.post("/categories", postCategory);
 router.patch("/categories/:id", patchCategory);
 router.patch("/jobs/:jobId/approval", patchJobApproval);
 router.patch("/workers/:workerId/approval", patchWorkerApproval);
+router.get("/users", getUsers);
+router.patch("/users/:userId", patchUser);
 
 module.exports = router;
