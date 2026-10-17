@@ -7,6 +7,92 @@ const normalizeTime = (value) => {
   return time.length === 5 ? `${time}:00` : time;
 };
 
+const getAllWorkers = async () => {
+  const result = await pool.query(`
+    SELECT u.id, u.name, u.phone, u.avatar_path AS "avatarPath",
+      wp.bio, wp.experience_years AS "experienceYears",
+      wp.education_summary AS "educationSummary", wp.district, wp.city,
+      wp.venue, wp.approval_status AS "approvalStatus",
+      wp.availability_status AS "availabilityStatus",
+      wp.average_rating AS "averageRating", wp.review_count AS "reviewCount",
+      COALESCE(
+        (
+          SELECT json_agg(
+            json_build_object(
+              'id', c.id,
+              'nameEn', c.name_en,
+              'nameSi', c.name_si,
+              'slug', c.slug,
+              'icon', c.icon
+            ) ORDER BY c.name_en
+          )
+          FROM worker_categories wc
+          JOIN categories c ON c.id = wc.category_id AND c.is_active = TRUE
+          WHERE wc.worker_id = u.id
+        ),
+        '[]'::json
+      ) AS categories,
+      COALESCE(
+        (
+          SELECT json_agg(
+            json_build_object(
+              'id', we.id,
+              'companyName', we.company_name,
+              'jobTitle', we.job_title,
+              'description', we.description,
+              'startDate', we.start_date,
+              'endDate', we.end_date,
+              'isCurrent', we.is_current
+            ) ORDER BY we.created_at
+          )
+          FROM worker_experience we
+          WHERE we.worker_id = u.id
+        ),
+        '[]'::json
+      ) AS experiences,
+      COALESCE(
+        (
+          SELECT json_agg(
+            json_build_object(
+              'id', edu.id,
+              'institution', edu.institution,
+              'qualification', edu.qualification,
+              'description', edu.description,
+              'startDate', edu.start_date,
+              'endDate', edu.end_date
+            ) ORDER BY edu.created_at
+          )
+          FROM worker_education edu
+          WHERE edu.worker_id = u.id
+        ),
+        '[]'::json
+      ) AS education,
+      COALESCE(
+        (
+          SELECT json_agg(
+            json_build_object(
+              'id', wpj.id,
+              'title', wpj.title,
+              'description', wpj.description,
+              'completedAt', wpj.completed_at
+            ) ORDER BY wpj.created_at
+          )
+          FROM worker_portfolio wpj
+          WHERE wpj.worker_id = u.id
+        ),
+        '[]'::json
+      ) AS portfolio
+    FROM worker_profiles wp
+    JOIN users u ON u.id = wp.user_id
+    WHERE u.is_active = TRUE
+      AND u.role = 'WORKER'
+      AND wp.approval_status = 'APPROVED'
+    ORDER BY u.created_at DESC
+  `);
+
+  return result.rows;
+};
+
 const submitJobRequest = async (workerId, jobId, payload) => {
   const result = await pool.query(
     `
@@ -472,6 +558,7 @@ const updateBookingWorkStatus = async (workerId, bookingId, status) => {
 };
 
 module.exports = {
+  getAllWorkers,
   submitJobRequest,
   getBookingRequestsForWorker,
   respondToBookingRequest,

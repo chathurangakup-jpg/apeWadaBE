@@ -1,4 +1,5 @@
 const {
+  getAllWorkers: listAllWorkers,
   submitJobRequest,
   getBookingRequestsForWorker,
   respondToBookingRequest,
@@ -20,6 +21,15 @@ const {
 const {
   validateCancellationPayload,
 } = require("../validators/cancellation.validator");
+
+const getAllWorkers = async (_req, res) => {
+  try {
+    const workers = await listAllWorkers();
+    return res.status(200).json({ success: true, data: { workers } });
+  } catch (error) {
+    return handleWorkerError(error, res, "Failed to load workers");
+  }
+};
 
 const postJobRequest = async (req, res) => {
   try {
@@ -219,6 +229,7 @@ const handleWorkerError = (error, res, fallbackMessage) => {
 };
 
 module.exports = {
+  getAllWorkers,
   postJobRequest,
   getBookingRequests,
   patchBookingRequest,

@@ -154,10 +154,11 @@ Approval decisions must use the existing worker/job approval endpoints. This upd
 
 ### Customer
 
-All routes require an authenticated CUSTOMER token.
+All routes require authentication. `GET /api/customer/getAllJobs` is available to authenticated CUSTOMER and WORKER users; all other routes in this section require a CUSTOMER token.
 
 | Method | Path                                       | Purpose                                                     |
 | ------ | ------------------------------------------ | ----------------------------------------------------------- |
+| GET    | `/api/customer/getAllJobs`                 | List jobs with category, customer, and image details        |
 | POST   | `/api/customer/jobs`                       | Create a job; initial status is PENDING_APPROVAL            |
 | PATCH  | `/api/customer/jobs/:id`                   | Update an owned pending job                                 |
 | DELETE | `/api/customer/jobs/:id`                   | Remove an owned pending job                                 |
@@ -166,12 +167,15 @@ All routes require an authenticated CUSTOMER token.
 | PATCH  | `/api/customer/bookings/:bookingId/cancel` | Cancel a confirmed/in-progress booking with a reason        |
 | POST   | `/api/customer/bookings/:bookingId/review` | Review the worker after a linked job is completed           |
 
+`GET /api/customer/getAllJobs` returns the jobs array in `data.jobs`. Each job includes category details, customer display information, and its images.
+
 ### Worker
 
-All routes require an authenticated WORKER token.
+All routes require authentication. `GET /api/worker/getAllWorkers` is available to authenticated WORKER and CUSTOMER users; all other routes in this section require a WORKER token.
 
 | Method | Path                                      | Purpose                                              |
 | ------ | ----------------------------------------- | ---------------------------------------------------- |
+| GET    | `/api/worker/getAllWorkers`               | List active, approved workers with profile details  |
 | POST   | `/api/worker/jobs/:jobId/requests`        | Submit a quotation for an OPEN job                   |
 | GET    | `/api/worker/booking-requests`            | List booking requests sent to the worker             |
 | PATCH  | `/api/worker/bookings/:bookingId/respond` | Accept or reject a pending booking request           |
@@ -180,6 +184,8 @@ All routes require an authenticated WORKER token.
 | GET    | `/api/worker/availability`                | List worker availability entries                     |
 | POST   | `/api/worker/availability`                | Add one or more availability entries                 |
 | PATCH  | `/api/worker/availability-status`         | Set the worker profile status to AVAILABLE or UNAVAILABLE |
+
+`GET /api/worker/getAllWorkers` returns the workers array in `data.workers`. Each worker includes profile details, categories, experience, education, and portfolio entries.
 
 Worker `GET /api/user/me` also includes pending booking requests in the worker profile.
 
