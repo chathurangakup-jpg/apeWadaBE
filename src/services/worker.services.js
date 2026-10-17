@@ -117,6 +117,19 @@ const listWorkerAvailability = async (workerId) => {
   return result.rows;
 };
 
+const updateWorkerAvailabilityStatus = async (workerId, availabilityStatus) => {
+  const result = await pool.query(
+    `
+      UPDATE worker_profiles
+      SET availability_status = $2, updated_at = NOW()
+      WHERE user_id = $1
+      RETURNING availability_status AS "availabilityStatus"
+    `,
+    [workerId, availabilityStatus],
+  );
+  return result.rows[0] || null;
+};
+
 const saveWorkerAvailability = async (workerId, entries) => {
   const client = await pool.connect();
   try {
@@ -463,6 +476,7 @@ module.exports = {
   getBookingRequestsForWorker,
   respondToBookingRequest,
   listWorkerAvailability,
+  updateWorkerAvailabilityStatus,
   saveWorkerAvailability,
   cancelBooking,
   updateBookingWorkStatus,

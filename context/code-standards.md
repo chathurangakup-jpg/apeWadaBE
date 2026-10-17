@@ -2,52 +2,59 @@
 
 ## General
 
-- [Principle — e.g. Keep modules small and single-purpose]
-- [Principle — e.g. Fix root causes, do not layer workarounds]
-- [Principle — e.g. Do not mix unrelated concerns in one
-  component or route]
+- Keep modules small, single-responsibility, and easy to read.
+- Fix the root cause rather than layering workarounds around symptoms.
+- Do not mix authentication, validation, database access, and business logic in the same route handler.
+- Prefer clear, maintainable code over clever abstractions.
 
-## TypeScript
+## JavaScript / Node.js
 
-- [Rule — e.g. Strict mode is required throughout the project]
-- [Rule — e.g. Avoid any — use explicit interfaces or narrowly
-  scoped types]
-- [Rule — e.g. Validate unknown external input at system
-  boundaries before trusting it]
+- Use consistent JavaScript patterns across the project and follow the existing Express code style.
+- Avoid loose dynamic logic when a clear object shape or validation step is available.
+- Treat request and response objects as untrusted input/output boundaries.
+- Avoid production debug logging with `console.log`; remove it or replace it with a structured logger if needed.
+- Keep helper functions small and predictable, and avoid side effects in utility code.
 
-## [Framework — e.g. Next.js]
+## Express API
 
-- [Convention — e.g. Default to server components]
-- [Convention — e.g. Add use client only when browser
-  interactivity requires it]
-- [Convention — e.g. Keep route handlers focused on a
-  single responsibility]
+- Routes should define endpoints and delegate business behavior to controllers/services.
+- Validate request params, query values, and body payloads before performing business logic.
+- Enforce authentication and authorization checks before any mutation or privileged action.
+- Return consistent JSON response shapes for success and error cases.
+- Centralize unexpected error handling and avoid swallowing exceptions silently.
 
-## Styling
+## Database and PostgreSQL
 
-- [Rule — e.g. Use CSS custom property tokens — no
-  hardcoded hex values]
-- [Rule — e.g. Follow the border radius scale defined
-  in ui-context.md]
+- Use parameterized SQL and avoid interpolating user input directly into queries.
+- Add migrations for all schema changes and keep migration naming consistent.
+- Validate data at the API boundary before writing to the database.
+- Keep transactional boundaries explicit when a flow requires multiple database operations.
+- Do not duplicate derived data in multiple tables when it can be computed or fetched correctly.
 
-## API Routes
+## Styling and Naming
 
-- [Rule — e.g. Validate and parse request input before
-  any logic runs]
-- [Rule — e.g. Enforce auth and ownership before any mutation]
-- [Rule — e.g. Return consistent, predictable response shapes]
-
-## Data and Storage
-
-- [Rule — e.g. Metadata belongs in the database]
-- [Rule — e.g. Large generated content belongs in file
-  or blob storage]
-- [Rule — e.g. Do not store large content directly in
-  the database]
+- Use `camelCase` for variables and functions, `PascalCase` for constructors/classes, and descriptive names.
+- Prefer early returns and guard clauses over deeply nested conditionals.
+- Keep code readable and maintainable with sensible line lengths and clear grouping.
+- Avoid magic numbers and hardcoded strings where a constant or enum is more appropriate.
+- Only add comments when they explain non-obvious business intent or a tricky edge case.
 
 ## File Organization
 
-- `[folder]/` — [What belongs here]
-- `[folder]/` — [What belongs here]
-- `[folder]/` — [What belongs here]
-- `[folder]/` — [What belongs here]s
+- `src/routes/` — Express route definitions and endpoint wiring.
+- `src/controllers/` — request handling and response serialization.
+- `src/services/` — business rules, orchestration, and domain logic.
+- `src/validators/` — request validation and sanitization rules.
+- `src/middleware/` — auth, JWT, password, and shared request checks.
+- `src/config/` — environment and database configuration.
+- `src/socket/` — real-time Socket.IO integration and event handlers.
+- `src/migrations/` — SQL schema and seed migration files.
+- `src/scripts/` — helper scripts and operational utilities.
+
+## API Route Expectations
+
+- Validate and parse request input before any logic runs.
+- Enforce auth and ownership checks before any mutation.
+- Return predictable response shapes and clear error messages.
+- Keep route handlers focused on a single responsibility.
+- Ensure database operations and permission checks are completed before sending a success response.

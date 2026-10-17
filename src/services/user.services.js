@@ -35,8 +35,7 @@ const getPublicData = async () => {
         LEFT JOIN categories c ON c.id = wc.category_id AND c.is_active = TRUE
         WHERE u.is_active = TRUE
           AND wp.approval_status = 'APPROVED'
-          AND wp.average_rating > 0
-          AND wp.review_count > 0
+        
         GROUP BY u.id, wp.user_id
         ORDER BY wp.average_rating DESC, wp.review_count DESC, u.created_at DESC
         LIMIT 5

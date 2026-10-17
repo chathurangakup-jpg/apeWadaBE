@@ -6,6 +6,7 @@ const {
   patchBookingRequest,
   getAvailability,
   postAvailability,
+  patchAvailabilityStatus,
   cancelWorkerBooking,
   patchBookingWorkStatus,
 } = require("../controllers/worker.controller");
@@ -30,5 +31,6 @@ router.patch("/bookings/:bookingId/status", patchBookingWorkStatus);
 router.patch("/bookings/:bookingId/cancel", cancelWorkerBooking);
 router.get("/availability", getAvailability);
 router.post("/availability", postAvailability);
+router.patch("/availability-status", patchAvailabilityStatus);
 
 module.exports = router;

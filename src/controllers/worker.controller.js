@@ -3,6 +3,7 @@ const {
   getBookingRequestsForWorker,
   respondToBookingRequest,
   listWorkerAvailability,
+  updateWorkerAvailabilityStatus,
   saveWorkerAvailability,
   cancelBooking,
   updateBookingWorkStatus,
@@ -14,6 +15,7 @@ const {
   validateBookingDecisionPayload,
   validateBookingWorkStatusPayload,
   validateAvailabilityPayload,
+  validateAvailabilityStatusPayload,
 } = require("../validators/worker.validator");
 const {
   validateCancellationPayload,
@@ -80,6 +82,33 @@ const postAvailability = async (req, res) => {
     });
   } catch (error) {
     return handleWorkerError(error, res, "Failed to save worker availability");
+  }
+};
+
+const patchAvailabilityStatus = async (req, res) => {
+  try {
+    const { availabilityStatus } = validateAvailabilityStatusPayload(req.body);
+    const profile = await updateWorkerAvailabilityStatus(
+      req.user.sub,
+      availabilityStatus,
+    );
+    if (!profile) {
+      return res.status(404).json({
+        success: false,
+        message: "Worker profile not found",
+      });
+    }
+    return res.status(200).json({
+      success: true,
+      message: "Availability status updated successfully",
+      data: { availabilityStatus: profile.availabilityStatus },
+    });
+  } catch (error) {
+    return handleWorkerError(
+      error,
+      res,
+      "Failed to update availability status",
+    );
   }
 };
 
@@ -195,6 +224,7 @@ module.exports = {
   patchBookingRequest,
   getAvailability,
   postAvailability,
+  patchAvailabilityStatus,
   cancelWorkerBooking,
   patchBookingWorkStatus,
 };

@@ -216,6 +216,21 @@ const validateAvailabilityPayload = (body = {}) => {
   });
 };
 
+const validateAvailabilityStatusPayload = (body = {}) => {
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    throw validationError("Request body must be a JSON object");
+  }
+  if (
+    Object.keys(body).length !== 1 ||
+    !["AVAILABLE", "UNAVAILABLE"].includes(body.availabilityStatus)
+  ) {
+    throw validationError(
+      "availabilityStatus must be AVAILABLE or UNAVAILABLE",
+    );
+  }
+  return { availabilityStatus: body.availabilityStatus };
+};
+
 module.exports = {
   validateJobId,
   validateBookingId,
@@ -223,4 +238,5 @@ module.exports = {
   validateBookingDecisionPayload,
   validateBookingWorkStatusPayload,
   validateAvailabilityPayload,
+  validateAvailabilityStatusPayload,
 };

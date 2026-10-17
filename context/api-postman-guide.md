@@ -179,6 +179,7 @@ All routes require an authenticated WORKER token.
 | PATCH  | `/api/worker/bookings/:bookingId/cancel`  | Cancel a confirmed/in-progress booking with a reason |
 | GET    | `/api/worker/availability`                | List worker availability entries                     |
 | POST   | `/api/worker/availability`                | Add one or more availability entries                 |
+| PATCH  | `/api/worker/availability-status`         | Set the worker profile status to AVAILABLE or UNAVAILABLE |
 
 Worker `GET /api/user/me` also includes pending booking requests in the worker profile.
 
@@ -569,6 +570,26 @@ Use `workerToken`.
 ```
 
 List availability with **GET** `{{baseUrl}}/api/worker/availability`.
+
+Update the worker's overall availability status with **PATCH** `{{baseUrl}}/api/worker/availability-status`. This is distinct from the dated/time-based availability entries above.
+
+```json
+{
+  "availabilityStatus": "AVAILABLE"
+}
+```
+
+Set it back to `"UNAVAILABLE"` when the worker should no longer be shown as available. The response includes the saved status:
+
+```json
+{
+  "success": true,
+  "message": "Availability status updated successfully",
+  "data": {
+    "availabilityStatus": "AVAILABLE"
+  }
+}
+```
 
 ### 3.15 Start a Text Conversation
 
