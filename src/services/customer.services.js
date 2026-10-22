@@ -10,9 +10,15 @@ const getJob = async (client, jobId) => {
         j.district, j.city, j.venue, j.preferred_date AS "preferredDate",
         j.status, j.approved_by AS "approvedBy", j.approved_at AS "approvedAt",
         j.rejection_reason AS "rejectionReason", j.created_at AS "createdAt",
-        j.updated_at AS "updatedAt"
+        j.updated_at AS "updatedAt",
+        json_build_object(
+          'id', customer.id,
+          'name', customer.name,
+          'avatarPath', customer.avatar_path
+        ) AS customer
       FROM jobs j
       JOIN categories c ON c.id = j.category_id
+      JOIN users customer ON customer.id = j.customer_id
       WHERE j.id = $1
     `,
     [jobId],
@@ -36,6 +42,15 @@ const getJob = async (client, jobId) => {
   );
 
   return { ...jobResult.rows[0], images: imagesResult.rows };
+};
+
+const getJobById = async (jobId) => {
+  const client = await pool.connect();
+  try {
+    return await getJob(client, jobId);
+  } finally {
+    client.release();
+  }
 };
 
 const getAllJobs = async () => {
@@ -543,6 +558,7 @@ const createWorkerReview = async (customerId, bookingId, payload) => {
 
 module.exports = {
   getAllJobs,
+  getJobById,
   createJob,
   updateJob,
   removeJob,

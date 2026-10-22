@@ -2,6 +2,7 @@ const express = require("express");
 const { auth } = require("../middleware/auth");
 const {
   getAllJobs,
+  getJobById,
   postJob,
   patchJob,
   deleteJob,
@@ -25,6 +26,7 @@ const requireCustomer = (req, res, next) => {
 
 router.use(auth);
 router.get("/getAllJobs", getAllJobs);
+router.get("/getJobById/:jobId", getJobById);
 router.use(requireCustomer);
 router.post("/jobs", postJob);
 router.patch("/jobs/:id", patchJob);

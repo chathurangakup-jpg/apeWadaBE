@@ -1,5 +1,6 @@
 const {
   getAllWorkers: listAllWorkers,
+  getWorkerById: findWorkerById,
   submitJobRequest,
   getBookingRequestsForWorker,
   respondToBookingRequest,
@@ -11,6 +12,7 @@ const {
 } = require("../services/worker.services");
 const {
   validateJobId,
+  validateWorkerId,
   validateBookingId,
   validateJobRequestPayload,
   validateBookingDecisionPayload,
@@ -28,6 +30,22 @@ const getAllWorkers = async (_req, res) => {
     return res.status(200).json({ success: true, data: { workers } });
   } catch (error) {
     return handleWorkerError(error, res, "Failed to load workers");
+  }
+};
+
+const getWorkerById = async (req, res) => {
+  try {
+    const workerId = validateWorkerId(req.params.workerId);
+    const worker = await findWorkerById(workerId);
+    if (!worker) {
+      return res.status(404).json({
+        success: false,
+        message: "Worker not found",
+      });
+    }
+    return res.status(200).json({ success: true, data: { worker } });
+  } catch (error) {
+    return handleWorkerError(error, res, "Failed to load worker");
   }
 };
 
@@ -230,6 +248,7 @@ const handleWorkerError = (error, res, fallbackMessage) => {
 
 module.exports = {
   getAllWorkers,
+  getWorkerById,
   postJobRequest,
   getBookingRequests,
   patchBookingRequest,

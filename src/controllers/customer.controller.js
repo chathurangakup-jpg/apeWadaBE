@@ -1,5 +1,6 @@
 const {
   getAllJobs: listAllJobs,
+  getJobById: findJobById,
   createJob,
   updateJob,
   removeJob,
@@ -25,6 +26,19 @@ const getAllJobs = async (_req, res) => {
     return res.status(200).json({ success: true, data: { jobs } });
   } catch (error) {
     return handleJobError(error, res, "Failed to load jobs");
+  }
+};
+
+const getJobById = async (req, res) => {
+  try {
+    const jobId = validateJobId(req.params.jobId);
+    const job = await findJobById(jobId);
+    if (!job) {
+      return res.status(404).json({ success: false, message: "Job not found" });
+    }
+    return res.status(200).json({ success: true, data: { job } });
+  } catch (error) {
+    return handleJobError(error, res, "Failed to load job");
   }
 };
 
@@ -212,6 +226,7 @@ const handleJobError = (error, res, fallbackMessage) => {
 
 module.exports = {
   getAllJobs,
+  getJobById,
   postJob,
   patchJob,
   deleteJob,

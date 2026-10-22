@@ -7,14 +7,17 @@ const normalizeTime = (value) => {
   return time.length === 5 ? `${time}:00` : time;
 };
 
-const getAllWorkers = async () => {
-  const result = await pool.query(`
-    SELECT u.id, u.name, u.phone, u.avatar_path AS "avatarPath",
+const getWorkers = async (workerId = null) => {
+  return pool.query(
+    `
+    SELECT u.id, u.name, u.phone, u.preferred_language AS "preferredLanguage",
+      u.avatar_path AS "avatarPath", u.created_at AS "createdAt",
       wp.bio, wp.experience_years AS "experienceYears",
       wp.education_summary AS "educationSummary", wp.district, wp.city,
       wp.venue, wp.approval_status AS "approvalStatus",
       wp.availability_status AS "availabilityStatus",
       wp.average_rating AS "averageRating", wp.review_count AS "reviewCount",
+      wp.created_at AS "profileCreatedAt", wp.updated_at AS "profileUpdatedAt",
       COALESCE(
         (
           SELECT json_agg(
@@ -81,16 +84,47 @@ const getAllWorkers = async () => {
           WHERE wpj.worker_id = u.id
         ),
         '[]'::json
-      ) AS portfolio
+      ) AS portfolio,
+      COALESCE(
+        (
+          SELECT json_agg(
+            json_build_object(
+              'id', r.id,
+              'jobId', r.job_id,
+              'jobTitle', j.title,
+              'customerName', customer.name,
+              'rating', r.rating,
+              'comment', r.comment,
+              'createdAt', r.created_at
+            ) ORDER BY r.created_at DESC
+          )
+          FROM reviews r
+          JOIN users customer ON customer.id = r.customer_id
+          JOIN jobs j ON j.id = r.job_id
+          WHERE r.worker_id = u.id
+        ),
+        '[]'::json
+      ) AS reviews
     FROM worker_profiles wp
     JOIN users u ON u.id = wp.user_id
     WHERE u.is_active = TRUE
       AND u.role = 'WORKER'
       AND wp.approval_status = 'APPROVED'
+      AND ($1::uuid IS NULL OR u.id = $1)
     ORDER BY u.created_at DESC
-  `);
+    `,
+    [workerId],
+  );
+};
 
+const getAllWorkers = async () => {
+  const result = await getWorkers();
   return result.rows;
+};
+
+const getWorkerById = async (workerId) => {
+  const result = await getWorkers(workerId);
+  return result.rows[0] || null;
 };
 
 const submitJobRequest = async (workerId, jobId, payload) => {
@@ -559,6 +593,7 @@ const updateBookingWorkStatus = async (workerId, bookingId, status) => {
 
 module.exports = {
   getAllWorkers,
+  getWorkerById,
   submitJobRequest,
   getBookingRequestsForWorker,
   respondToBookingRequest,

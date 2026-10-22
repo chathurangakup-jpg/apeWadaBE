@@ -14,6 +14,13 @@ const validateJobId = (id) => {
   return id;
 };
 
+const validateWorkerId = (id) => {
+  if (!UUID_PATTERN.test(String(id || ""))) {
+    throw validationError("A valid worker ID is required");
+  }
+  return id;
+};
+
 const validateBookingId = (id) => {
   if (!UUID_PATTERN.test(String(id || ""))) {
     throw validationError("A valid booking ID is required");
@@ -233,6 +240,7 @@ const validateAvailabilityStatusPayload = (body = {}) => {
 
 module.exports = {
   validateJobId,
+  validateWorkerId,
   validateBookingId,
   validateJobRequestPayload,
   validateBookingDecisionPayload,

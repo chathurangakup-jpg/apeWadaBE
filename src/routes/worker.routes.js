@@ -2,6 +2,7 @@ const express = require("express");
 const { auth } = require("../middleware/auth");
 const {
   getAllWorkers,
+  getWorkerById,
   postJobRequest,
   getBookingRequests,
   patchBookingRequest,
@@ -26,6 +27,7 @@ const requireWorker = (req, res, next) => {
 
 router.use(auth);
 router.get("/getAllWorkers", getAllWorkers);
+router.get("/getWorkerById/:workerId", getWorkerById);
 router.use(requireWorker);
 router.post("/jobs/:jobId/requests", postJobRequest);
 router.get("/booking-requests", getBookingRequests);
