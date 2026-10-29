@@ -24,6 +24,16 @@ const validateJobId = (id) => {
   return id;
 };
 
+const validateCreatedJobsQuery = (query = {}) => {
+  const unsupportedFields = Object.keys(query);
+
+  if (unsupportedFields.length > 0) {
+    throw validationError(
+      `Unsupported query fields: ${unsupportedFields.join(", ")}`,
+    );
+  }
+};
+
 const validateDate = (value, field) => {
   if (value === null || value === "") {
     return null;
@@ -294,6 +304,7 @@ const validateReviewPayload = (body = {}) => {
 
 module.exports = {
   validateJobId,
+  validateCreatedJobsQuery,
   validateJobPayload,
   validateBookingPayload,
   validateReviewPayload,

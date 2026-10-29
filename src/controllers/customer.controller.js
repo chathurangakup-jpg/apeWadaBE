@@ -1,5 +1,6 @@
 const {
   getAllJobs: listAllJobs,
+  getCustomerJobs: listCustomerJobs,
   getJobById: findJobById,
   createJob,
   updateJob,
@@ -11,6 +12,7 @@ const {
 } = require("../services/customer.services");
 const {
   validateJobId,
+  validateCreatedJobsQuery,
   validateJobPayload,
   validateBookingPayload,
   validateReviewPayload,
@@ -39,6 +41,16 @@ const getJobById = async (req, res) => {
     return res.status(200).json({ success: true, data: { job } });
   } catch (error) {
     return handleJobError(error, res, "Failed to load job");
+  }
+};
+
+const getCreatedJobs = async (req, res) => {
+  try {
+    validateCreatedJobsQuery(req.query);
+    const jobs = await listCustomerJobs(req.user.sub);
+    return res.status(200).json({ success: true, data: { jobs } });
+  } catch (error) {
+    return handleJobError(error, res, "Failed to load created jobs");
   }
 };
 
@@ -227,6 +239,7 @@ const handleJobError = (error, res, fallbackMessage) => {
 module.exports = {
   getAllJobs,
   getJobById,
+  getCreatedJobs,
   postJob,
   patchJob,
   deleteJob,

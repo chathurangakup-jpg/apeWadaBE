@@ -160,6 +160,7 @@ All routes require authentication. `GET /api/customer/getAllJobs` and `GET /api/
 | ------ | ------------------------------------------ | ----------------------------------------------------------- |
 | GET    | `/api/customer/getAllJobs`                 | List jobs with category, customer, and image details        |
 | GET    | `/api/customer/getJobById/:jobId`          | Get one job with category, customer, and image details      |
+| GET    | `/api/customer/jobs`                       | List jobs created by the authenticated customer             |
 | POST   | `/api/customer/jobs`                       | Create a job; initial status is PENDING_APPROVAL            |
 | PATCH  | `/api/customer/jobs/:id`                   | Update an owned pending job                                 |
 | DELETE | `/api/customer/jobs/:id`                   | Remove an owned pending job                                 |
@@ -170,6 +171,7 @@ All routes require authentication. `GET /api/customer/getAllJobs` and `GET /api/
 
 `GET /api/customer/getAllJobs` returns the jobs array in `data.jobs`. Each job includes category details, customer display information, and its images.
 Use `GET {{baseUrl}}/api/customer/getJobById/{{jobId}}` to retrieve one job by ID; the job object is returned in `data.job`.
+Use `GET {{baseUrl}}/api/customer/jobs` with a CUSTOMER Bearer token to retrieve only that customer's created jobs in `data.jobs`, including all statuses and job images.
 
 ### Worker
 

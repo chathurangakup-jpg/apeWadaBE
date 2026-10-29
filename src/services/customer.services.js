@@ -94,6 +94,45 @@ const getAllJobs = async () => {
   return result.rows;
 };
 
+const getCustomerJobs = async (customerId) => {
+  const result = await pool.query(
+    `
+      SELECT j.id, j.customer_id AS "customerId", j.title, j.description,
+        j.category_id AS "categoryId", c.name_en AS "categoryNameEn",
+        c.name_si AS "categoryNameSi", c.slug AS "categorySlug",
+        j.district, j.city, j.venue, j.preferred_date AS "preferredDate",
+        j.status, j.approved_by AS "approvedBy", j.approved_at AS "approvedAt",
+        j.rejection_reason AS "rejectionReason",
+        j.created_at AS "createdAt", j.updated_at AS "updatedAt",
+        COALESCE(
+          (
+            SELECT json_agg(
+              json_build_object(
+                'id', ji.id,
+                'storagePath', ji.storage_path,
+                'originalFilename', ji.original_filename,
+                'mimeType', ji.mime_type,
+                'fileSize', ji.file_size,
+                'sortOrder', ji.sort_order,
+                'createdAt', ji.created_at
+              ) ORDER BY ji.sort_order, ji.created_at
+            )
+            FROM job_images ji
+            WHERE ji.job_id = j.id
+          ),
+          '[]'::json
+        ) AS images
+      FROM jobs j
+      JOIN categories c ON c.id = j.category_id
+      WHERE j.customer_id = $1
+      ORDER BY j.created_at DESC
+    `,
+    [customerId],
+  );
+
+  return result.rows;
+};
+
 const validateCustomer = async (client, customerId) => {
   const result = await client.query(
     `SELECT id FROM users WHERE id = $1 AND role = 'CUSTOMER' AND is_active = TRUE`,
@@ -558,6 +597,7 @@ const createWorkerReview = async (customerId, bookingId, payload) => {
 
 module.exports = {
   getAllJobs,
+  getCustomerJobs,
   getJobById,
   createJob,
   updateJob,
