@@ -7,6 +7,7 @@ const {
   patchJobApproval,
   patchWorkerApproval,
   getUsers,
+  getAllJobs,
   patchUser,
 } = require("../controllers/admin.controller");
 
@@ -30,6 +31,7 @@ router.patch("/categories/:id", patchCategory);
 router.patch("/jobs/:jobId/approval", patchJobApproval);
 router.patch("/workers/:workerId/approval", patchWorkerApproval);
 router.get("/users", getUsers);
+router.get("/getAllJobs", getAllJobs);
 router.patch("/users/:userId", patchUser);
 
 module.exports = router;

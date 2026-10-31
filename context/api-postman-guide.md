@@ -120,9 +120,11 @@ All routes require an authenticated ADMIN token.
 | PATCH  | `/api/admin/jobs/:jobId/approval`       | Approve or reject a pending job            |
 | PATCH  | `/api/admin/workers/:workerId/approval` | Approve or reject a pending worker profile |
 | GET    | `/api/admin/users`                      | List registered customers and workers      |
+| GET    | `/api/admin/getAllJobs`                 | List all jobs created by customers         |
 | PATCH  | `/api/admin/users/:userId`              | Update account and profile details         |
 
 Use `GET /api/admin/users?role=CUSTOMER` or `?role=WORKER` to filter the directory; omit `role` to list both. The response includes account details and a role-specific `profile`. Worker profiles include categories, experience, education, portfolio, approval/availability status, and rating totals. Password hashes are never returned.
+Use `GET {{baseUrl}}/api/admin/getAllJobs` with an ADMIN Bearer token to retrieve every customer-created job in `data.jobs`, including the customer, category, approval status, and images.
 
 Update a user with **PATCH** `{{baseUrl}}/api/admin/users/{{userId}}`. Only fields appropriate for that account role are accepted. Supported account fields are `name`, `email`, `phone`, `preferredLanguage`, and `isActive`; customer profile fields are `address`, `district`, `city`, and `venue`; worker scalar profile fields are `bio`, `experienceYears`, `educationSummary`, `district`, `city`, and `venue`.
 

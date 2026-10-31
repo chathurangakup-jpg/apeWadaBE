@@ -139,6 +139,48 @@ const listAdminUsers = async (role) => {
   return result.rows;
 };
 
+const listAdminJobs = async () => {
+  const result = await pool.query(`
+    SELECT j.id, j.customer_id AS "customerId", j.title, j.description,
+      j.category_id AS "categoryId", c.name_en AS "categoryNameEn",
+      c.name_si AS "categoryNameSi", c.slug AS "categorySlug",
+      j.district, j.city, j.venue, j.preferred_date AS "preferredDate",
+      j.status, j.approved_by AS "approvedBy", j.approved_at AS "approvedAt",
+      j.rejection_reason AS "rejectionReason",
+      j.created_at AS "createdAt", j.updated_at AS "updatedAt",
+      json_build_object(
+        'id', customer.id,
+        'name', customer.name,
+        'avatarPath', customer.avatar_path
+      ) AS customer,
+      COALESCE(
+        (
+          SELECT json_agg(
+            json_build_object(
+              'id', ji.id,
+              'storagePath', ji.storage_path,
+              'originalFilename', ji.original_filename,
+              'mimeType', ji.mime_type,
+              'fileSize', ji.file_size,
+              'sortOrder', ji.sort_order,
+              'createdAt', ji.created_at
+            ) ORDER BY ji.sort_order, ji.created_at
+          )
+          FROM job_images ji
+          WHERE ji.job_id = j.id
+        ),
+        '[]'::json
+      ) AS images
+    FROM jobs j
+    JOIN categories c ON c.id = j.category_id
+    JOIN users customer ON customer.id = j.customer_id
+      AND customer.role = 'CUSTOMER'
+    ORDER BY j.created_at DESC
+  `);
+
+  return result.rows;
+};
+
 const updateAdminUser = async (userId, payload) => {
   const client = await pool.connect();
   try {
@@ -345,6 +387,7 @@ module.exports = {
   createCategory,
   updateCategory,
   listAdminUsers,
+  listAdminJobs,
   updateAdminUser,
   approveJobAndNotify,
   approveWorkerAndNotify,

@@ -3,6 +3,7 @@ const {
   createCategory,
   updateCategory,
   listAdminUsers,
+  listAdminJobs,
   updateAdminUser,
 } = require("../services/admin.services");
 const {
@@ -182,6 +183,19 @@ const getUsers = async (req, res) => {
   }
 };
 
+const getAllJobs = async (_req, res) => {
+  try {
+    const jobs = await listAdminJobs();
+    return res.status(200).json({ success: true, data: { jobs } });
+  } catch (error) {
+    console.error("List admin jobs error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to load jobs",
+    });
+  }
+};
+
 const patchUser = async (req, res) => {
   try {
     const userId = validateAdminEntityId(req.params.userId, "userId");
@@ -233,5 +247,6 @@ module.exports = {
   patchJobApproval,
   patchWorkerApproval,
   getUsers,
+  getAllJobs,
   patchUser,
 };
