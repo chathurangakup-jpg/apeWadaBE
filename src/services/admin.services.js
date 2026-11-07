@@ -151,6 +151,7 @@ const listAdminJobs = async () => {
       json_build_object(
         'id', customer.id,
         'name', customer.name,
+        'email', customer.email,
         'avatarPath', customer.avatar_path
       ) AS customer,
       COALESCE(

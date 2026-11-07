@@ -14,6 +14,7 @@ const getJob = async (client, jobId) => {
         json_build_object(
           'id', customer.id,
           'name', customer.name,
+          'email', customer.email,
           'avatarPath', customer.avatar_path
         ) AS customer
       FROM jobs j
@@ -65,6 +66,7 @@ const getAllJobs = async () => {
       json_build_object(
         'id', customer.id,
         'name', customer.name,
+        'email', customer.email,
         'avatarPath', customer.avatar_path
       ) AS customer,
       COALESCE(

@@ -124,7 +124,7 @@ All routes require an authenticated ADMIN token.
 | PATCH  | `/api/admin/users/:userId`              | Update account and profile details         |
 
 Use `GET /api/admin/users?role=CUSTOMER` or `?role=WORKER` to filter the directory; omit `role` to list both. The response includes account details and a role-specific `profile`. Worker profiles include categories, experience, education, portfolio, approval/availability status, and rating totals. Password hashes are never returned.
-Use `GET {{baseUrl}}/api/admin/getAllJobs` with an ADMIN Bearer token to retrieve every customer-created job in `data.jobs`, including the customer, category, approval status, and images.
+Use `GET {{baseUrl}}/api/admin/getAllJobs` with an ADMIN Bearer token to retrieve every customer-created job in `data.jobs`, including the customer's ID, name, email, avatar path, category, approval status, and images.
 
 Update a user with **PATCH** `{{baseUrl}}/api/admin/users/{{userId}}`. Only fields appropriate for that account role are accepted. Supported account fields are `name`, `email`, `phone`, `preferredLanguage`, and `isActive`; customer profile fields are `address`, `district`, `city`, and `venue`; worker scalar profile fields are `bio`, `experienceYears`, `educationSummary`, `district`, `city`, and `venue`.
 
@@ -171,8 +171,8 @@ All routes require authentication. `GET /api/customer/getAllJobs` and `GET /api/
 | PATCH  | `/api/customer/bookings/:bookingId/cancel` | Cancel a confirmed/in-progress booking with a reason        |
 | POST   | `/api/customer/bookings/:bookingId/review` | Review the worker after a linked job is completed           |
 
-`GET /api/customer/getAllJobs` returns the jobs array in `data.jobs`. Each job includes category details, customer display information, and its images.
-Use `GET {{baseUrl}}/api/customer/getJobById/{{jobId}}` to retrieve one job by ID; the job object is returned in `data.job`.
+`GET /api/customer/getAllJobs` returns the jobs array in `data.jobs`. Each job includes category details, customer ID, name, email, avatar path, and images.
+Use `GET {{baseUrl}}/api/customer/getJobById/{{jobId}}` to retrieve one job by ID; the job object is returned in `data.job` with the customer's ID, name, email, and avatar path.
 Use `GET {{baseUrl}}/api/customer/jobs` with a CUSTOMER Bearer token to retrieve only that customer's created jobs in `data.jobs`, including all statuses and job images.
 
 ### Worker
